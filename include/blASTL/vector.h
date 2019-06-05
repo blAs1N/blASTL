@@ -1,8 +1,7 @@
 #pragma once
 
 #include <initializer_list>
-#include <memory>
-#include <utility>
+#include "iterator.h"
 
 namespace blASTL {
 
@@ -18,10 +17,10 @@ namespace blASTL {
 		using const_reference = const value_type&;
 		using pointer = std::allocator_traits<Allocator>::pointer;
 		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
-		using iterator = T*;
-		using const_iterator = const T*;
-		using reverse_iterator = std::reverse_iterator<iterator>;
-		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+		using iterator = random_access_iterator<std::random_access_iterator_tag, value_type, difference_type, pointer, reference>;
+		using const_iterator = random_access_iterator<std::random_access_iterator_tag, value_type, difference_type, const_pointer, const_reference>;
+		using reverse_iterator = reverse_iterator<iterator>;
+		using const_reverse_iterator = reverse_iterator<const_iterator>;
 	
 	public:
 		// Constructor and Destructor

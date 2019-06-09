@@ -24,23 +24,53 @@ namespace blASTL {
 	
 	public:
 		// Constructor and Destructor
-		vector() noexcept(noexcept(Allocator()));
-		explicit vector(const Allocator& alloc) noexcept;
-		vector(size_type count, const T& value, const Allocator& alloc = Allocator());
-		explicit vector(size_type count, const Allocator& alloc = Allocator());
+		vector() noexcept(noexcept(Allocator())) = default;
+
+		explicit vector(const Allocator& alloc) noexcept
+			: begin(), end(), last, allocator(alloc) {}
+
+		vector(size_type count, const T& value, const Allocator& alloc = Allocator())
+			: allocator(alloc), begin(allocator.allocate(count)), end(begin + count), last(begin + count) {
+
+			std::fill(begin, end, value);
+		}
+
+		explicit vector(size_type count, const Allocator& alloc = Allocator())
+			: vector(count, T(), alloc) {}
 
 		template <class InputIt>
-		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator());
+		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
+			: allocator(alloc) {
+			
+			for (; first != last; ++first)
+				push_back(*first);
+		}
 
-		vector(const vector& other);
-		vector(const vector& other, const Allocator& alloc);
+		vector(const vector& other)
+			: vector(other.begin, other.end, other.allocator) {}
 
-		vector(vector&& other) noexcept;
-		vector(vector&& other, const Allocator& alloc);
+		vector(const vector& other, const Allocator& alloc)
+			: vector(other.begin, other.end, alloc) {}
 
-		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator());
+		vector(vector&& other) noexcept
+			: allocator(std::move(other.allocator)), begin(std::move(other.begin)),
+			end(std::move(other.end)), last(std::move(other.last)) {}
+
+		vector(vector&& other, const Allocator& alloc)
+			: allocator(alloc), begin(std::move(other.begin)),
+			end(std::move(other.end)), last(std::move(other.last)) {}
+
+		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
+			: allocator(alloc), begin(allocator.allocate(init.size())), end(begin), last(begin + init.size()) {
+
+			for (const auto& it : init)
+				push_back(it);
+		}
 	
-		~vector();
+		~vector() {
+			for (size_type i = 0; i < size_; ++i)
+				std::allocator_traits<Allocator>::destroy(allocator, std::addressof(*(begin + i)));
+		}
 
 		// Member Function
 		vector& operator=(const vector& other);
@@ -126,6 +156,12 @@ namespace blASTL {
 		void resize(size_type count, const value_type& value);
 		
 		void swap(vector& other) noexcept;
+
+	private:
+		iterator begin;
+		iterator end;
+		iterator last;
+		Allocator allocator
 	};
 
 	// Non-member functions

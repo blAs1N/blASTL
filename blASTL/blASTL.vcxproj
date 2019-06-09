@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\blASTL\reverse_iterator.h" />
     <ClInclude Include="..\include\blASTL\vector.h" />
     <ClInclude Include="iterator.h" />
   </ItemGroup>

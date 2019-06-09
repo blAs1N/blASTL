@@ -18,9 +18,6 @@
     <ClInclude Include="..\include\blASTL\vector.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\blASTL\reverse_iterator.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="iterator.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

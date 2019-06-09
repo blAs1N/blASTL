@@ -15,8 +15,8 @@ namespace blASTL {
 		using difference_type = std::ptrdiff_t;
 		using reference = value_type&;
 		using const_reference = const value_type&;
-		using pointer = std::allocator_traits<Allocator>::pointer;
-		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
+		using pointer = std::allocator_traits<allocator_type>::pointer;
+		using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
 		using iterator = random_access_iterator<std::random_access_iterator_tag, value_type, difference_type, pointer, reference>;
 		using const_iterator = random_access_iterator<std::random_access_iterator_tag, value_type, difference_type, const_pointer, const_reference>;
 		using reverse_iterator = reverse_iterator<iterator>;
@@ -27,12 +27,12 @@ namespace blASTL {
 		vector() noexcept(noexcept(Allocator())) = default;
 
 		explicit vector(const Allocator& alloc) noexcept
-			: begin(), end(), last, allocator(alloc) {}
+			: mBegin(), mEnd(), mLast, allocator(alloc) {}
 
 		vector(size_type count, const T& value, const Allocator& alloc = Allocator())
-			: allocator(alloc), begin(allocator.allocate(count)), end(begin + count), last(begin + count) {
+			: allocator(alloc), mBegin(allocator.allocate(count)), mEnd(mBegin + count), mLast(mBegin + count) {
 
-			std::fill(begin, last, value);
+			std::fill(mBegin, mLast, value);
 		}
 
 		explicit vector(size_type count, const Allocator& alloc = Allocator())
@@ -44,30 +44,33 @@ namespace blASTL {
 			
 			auto size = last - first;
 
-			begin = allocator.allocate(size);
-			end = this->last = begin + size;
+			mBegin = allocator.allocate(size);
+			mEnd = this->mLast = mBegin + size;
 
-			memmove_s(std::addressof(*begin), size, std::addressof(*first), size);
+			memmove_s(std::addressof(*mBegin), size * sizeof(value_type), std::addressof(*first), size * sizeof(value_type));
 		}
 
 		vector(const vector& other)
-			: vector(other.begin, other.end, other.allocator) {}
+			: vector(other.mBegin, other.mEnd, other.allocator) {}
 
 		vector(const vector& other, const Allocator& alloc)
-			: vector(other.begin, other.end, alloc) {}
+			: vector(other.mBegin, other.mEnd, alloc) {}
 
 		vector(vector&& other) noexcept
-			: allocator(std::move(other.allocator)), begin(std::move(other.begin)),
-			end(std::move(other.end)), last(end) {}
+			: allocator(std::move(other.allocator)), mBegin(std::move(other.mBegin)),
+			mEnd(std::move(other.mEnd)), mLast(mEnd) {}
 
 		vector(vector&& other, const Allocator& alloc)
-			: allocator(alloc), begin(std::move(other.begin)),
-			end(std::move(other.end)), last(std::move(other.last)) {}
+			: allocator(alloc), mBegin(std::move(other.mBegin)),
+			mEnd(std::move(other.mEnd)), mLast(std::move(other.mLast)) {}
 
 		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
-			: allocator(alloc), begin(allocator.allocate(init.size())), end(begin + init.size()), last(begin + init.size()) {
+			: allocator(alloc), mBegin(allocator.allocate(init.size())), mEnd(mBegin + init.size()), mLast(mBegin + init.size()) {
 
-			memmove_s(std::addressof(*begin), init.size(), std::addressof(*init.begin()), init.size);
+			memmove_s(std::addressof(*mBegin),
+				init.size() * sizeof(value_type),
+				std::addressof(*init.begin()),
+				init.size * sizeof(value_type));
 		}
 	
 		~vector() {
@@ -79,34 +82,42 @@ namespace blASTL {
 			clear();
 			
 			allocator = other.allocator;
-			begin = allocator.allocate(other.size());
-			end = last = begin + other.size();
-			memmove_s(std::addressof(*begin), other.size(), std::addressof(*other.begin), other.size());
+			mBegin = allocator.allocate(other.size());
+			mEnd = mLast = mBegin + other.size();
+
+			memmove_s(std::addressof(*mBegin),
+				other.size() * sizeof(value_type),
+				std::addressof(*other.mBegin),
+				other.size() * sizeof(value_type));
 		}
 
 		vector& operator=(vector&& other) noexcept {
 			clear();
 
 			allocator = std::move(other.allocator);
-			begin = std::move(other.begin);
-			end = last = std::move(other.end);
+			mBegin = std::move(other.mBegin);
+			mEnd = mLast = std::move(other.mEnd);
 		}
 
 		vector& operator=(std::initializer_list<T> ilist) {
 			clear();
 			
-			begin = allocator.allocate(ilist.size());
-			end = last = begin + ilist.size();
-			memmove_s(std::addressof(*begin), ilist.size(), std::addressof(*ilist.begin()), ilist.size());
+			mBegin = allocator.allocate(ilist.size());
+			mEnd = mLast = mBegin + ilist.size();
+
+			memmove_s(std::addressof(*mBegin),
+				ilist.size(),
+				std::addressof(*ilist.begin()),
+				ilist.size());
 		}
 		
 		void assign(size_type count, const T& value) {
 			clear();
 
-			begin = allocator.allocate(count);
-			end = this->last = begin + count;
+			mBegin = allocator.allocate(count);
+			mEnd = this->mLast = mBegin + count;
 
-			std::fill(begin, last, value);
+			std::fill(mBegin, mLast, value);
 		}
 
 		template <class InputIt>
@@ -115,10 +126,13 @@ namespace blASTL {
 
 			auto size = last - first;
 			
-			begin = allocator.allocate(size);
-			end = this->last = begin + size;
+			mBegin = allocator.allocate(size);
+			mEnd = this->mLast = mBegin + size;
 
-			memmove_s(std::addressof(*begin), size, std::addressof(*first), size);
+			memmove_s(std::addressof(*mBegin),
+				size * sizeof(value_type),
+				std::addressof(*first),
+				size * sizeof(value_type));
 		}
 		
 		void assign(std::initializer_list<T> ilist) {
@@ -134,107 +148,145 @@ namespace blASTL {
 			if (pos >= size())
 				throw std::out_of_range("vector::at - out of range");
 
-			return begin[pos];
+			return mBegin[pos];
 		}
 
 		const_reference at(size_type pos) const {
 			if (pos >= size())
 				throw std::out_of_range("vector::at - out of range");
 
-			return begin[pos];
+			return mBegin[pos];
 		}
 
 		reference operator[](size_type pos) {
-			return begin[pos];
+			return mBegin[pos];
 		}
 
 		const_reference operator[](size_type pos) const {
-			return begin[pos];
+			return mBegin[pos];
 		}
 
 		reference front() {
-			return *begin;
+			return *mBegin;
 		}
 
 		const_reference front() const {
-			return *begin;
+			return *mBegin;
 		}
 
 		reference back() {
-			return *end;
+			return *mEnd;
 		}
 
 		const_reference back() const {
-			return *end;
+			return *mEnd;
 		}
 
 		T* data() noexcept {
-			return std::addressof(*begin);
+			return std::addressof(*mBegin);
 		}
 
 		const T* data() const noexcept {
-			return std::addressof(*begin);
+			return std::addressof(*mBegin);
 		}
 
 		//Iterators
 		iterator begin() noexcept {
-			return begin;
+			return mBegin;
 		}
 
 		const_iterator begin() const noexcept {
-			return begin;
+			return mBegin;
 		}
 
 		const_iterator cbegin() const noexcept {
-			return begin;
+			return mBegin;
 		}
 
 		iterator end() noexcept {
-			return end;
+			return mEnd;
 		}
 
 		const_iterator end() const noexcept {
-			return end;
+			return mEnd;
 		}
 
 		const_iterator cend() const noexcept {
-			return end;
+			return mEnd;
 		}
 
 		reverse_iterator rbegin() noexcept {
-			return reverse_iterator(end);
+			return reverse_iterator(mEnd);
 		}
 
 		const_reverse_iterator rbegin() const noexcept {
-			return const_reverse_iterator(end);
+			return const_reverse_iterator(mEnd);
 		}
 
 		const_reverse_iterator crbegin() const noexcept {
-			return const_reverse_iterator(end);
+			return const_reverse_iterator(mEnd);
 		}
 
 		iterator rend() noexcept {
-			return reverse_iterator(end);
+			return reverse_iterator(mEnd);
 		}
 
 		const_reverse_iterator rend() const noexcept {
-			return const_reverse_iterator(end);
+			return const_reverse_iterator(mEnd);
 		}
 
 		const_reverse_iterator crend() const noexcept {
-			return const_reverse_iterator(end);
+			return const_reverse_iterator(mEnd);
 		}
 
 		// Capacity
-		bool empty() const noexcept;
-		size_type size() const noexcept;
-		size_type max_size() const noexcept;
-		void reserve(size_type new_cap);
-		size_type capacity() const noexcept;
+		bool empty() const noexcept {
+			return size() <= 0;
+		}
+
+		size_type size() const noexcept {
+			return mEnd - mBegin;
+		}
+
+		size_type max_size() const noexcept {
+			return __min(std::allocator_traits<allocator_type>::max_size(allocator),
+				std::numeric_limits<difference_type>::max());
+		}
+
+		void reserve(size_type new_cap) {
+			auto size = size();
+
+			if (size + new_cap >= max_size())
+				throw std::length_error("vector::reserve - new_cap is greater than max_size");
+
+			if (new_cap <= capacity()) return;
+
+			auto newBegin = allocator.allocate(new_cap);
+
+			memmove_s(std::addressof(*newBegin),
+				new_cap * sizeof(value_type),
+				std::addressof(*mBegin),
+				size * sizeof(value_type));
+
+			allocator.deallocate(mBegin, capacity());
+
+			mBegin = newBegin;
+			mEnd = mBegin + size;
+			mLast = mBegin + new_cap;
+		}
+
+		size_type capacity() const noexcept {
+			return mLast - mBegin;
+		}
+
 		void shrink_to_fit();
 		
 		// Modifiers
-		void clear() noexcept;
+		void clear() noexcept {
+			for (size_type i = 0; i < size_; ++i)
+				std::allocator_traits<allocator_type>::destroy(allocator, std::addressof(*(mBegin + i)));
+		}
+
 		iterator insert(const_iterator pos, const T& value);
 		iterator insert(const_iterator pos, T&& value);
 		iterator insert(const_iterator pos, size_type count, const T& value);
@@ -264,15 +316,9 @@ namespace blASTL {
 		void swap(vector& other) noexcept;
 
 	private:
-		void clear() {
-			for (size_type i = 0; i < size_; ++i)
-				std::allocator_traits<Allocator>::destroy(allocator, std::addressof(*(begin + i)));
-		}
-
-	private:
-		iterator begin;
-		iterator end;
-		iterator last;
+		iterator mBegin;
+		iterator mEnd;
+		iterator mLast;
 		Allocator allocator
 	};
 

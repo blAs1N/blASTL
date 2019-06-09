@@ -130,37 +130,100 @@ namespace blASTL {
 		}
 
 		// Element Access
-		reference at(size_type pos);
-		const_reference at(size_type pos) const;
+		reference at(size_type pos) {
+			if (pos >= size())
+				throw std::out_of_range("vector::at - out of range");
 
-		reference operator[](size_type pos);
-		const_reference operator[](size_type pos) const;
+			return begin[pos];
+		}
 
-		reference front();
-		const_reference front() const;
+		const_reference at(size_type pos) const {
+			if (pos >= size())
+				throw std::out_of_range("vector::at - out of range");
 
-		reference back();
-		const_reference back() const;
+			return begin[pos];
+		}
 
-		T* data() noexcept;
-		const T* data() const noexcept;
+		reference operator[](size_type pos) {
+			return begin[pos];
+		}
+
+		const_reference operator[](size_type pos) const {
+			return begin[pos];
+		}
+
+		reference front() {
+			return *begin;
+		}
+
+		const_reference front() const {
+			return *begin;
+		}
+
+		reference back() {
+			return *end;
+		}
+
+		const_reference back() const {
+			return *end;
+		}
+
+		T* data() noexcept {
+			return std::addressof(*begin);
+		}
+
+		const T* data() const noexcept {
+			return std::addressof(*begin);
+		}
 
 		//Iterators
-		iterator begin() noexcept;
-		const_iterator begin() const noexcept;
-		const_iterator cbegin() const noexcept;
+		iterator begin() noexcept {
+			return begin;
+		}
 
-		iterator end() noexcept;
-		const_iterator end() const noexcept;
-		const_iterator cend() const noexcept;
+		const_iterator begin() const noexcept {
+			return begin;
+		}
 
-		reverse_iterator rbegin() noexcept;
-		const_reverse_iterator rbegin() const noexcept;
-		const_reverse_iterator crbegin() const noexcept;
+		const_iterator cbegin() const noexcept {
+			return begin;
+		}
 
-		iterator rend() noexcept;
-		const_reverse_iterator rend() const noexcept;
-		const_reverse_iterator crend() const noexcept;
+		iterator end() noexcept {
+			return end;
+		}
+
+		const_iterator end() const noexcept {
+			return end;
+		}
+
+		const_iterator cend() const noexcept {
+			return end;
+		}
+
+		reverse_iterator rbegin() noexcept {
+			return reverse_iterator(end);
+		}
+
+		const_reverse_iterator rbegin() const noexcept {
+			return const_reverse_iterator(end);
+		}
+
+		const_reverse_iterator crbegin() const noexcept {
+			return const_reverse_iterator(end);
+		}
+
+		iterator rend() noexcept {
+			return reverse_iterator(end);
+		}
+
+		const_reverse_iterator rend() const noexcept {
+			return const_reverse_iterator(end);
+		}
+
+		const_reverse_iterator crend() const noexcept {
+			return const_reverse_iterator(end);
+		}
 
 		// Capacity
 		bool empty() const noexcept;

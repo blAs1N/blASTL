@@ -32,7 +32,7 @@ namespace blASTL {
 		vector(size_type count, const T& value, const Allocator& alloc = Allocator())
 			: allocator(alloc), begin(allocator.allocate(count)), end(begin + count), last(begin + count) {
 
-			std::fill(begin, end, value);
+			std::fill(begin, last, value);
 		}
 
 		explicit vector(size_type count, const Allocator& alloc = Allocator())
@@ -42,8 +42,12 @@ namespace blASTL {
 		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
 			: allocator(alloc) {
 			
-			for (; first != last; ++first)
-				push_back(*first);
+			auto size = last - first;
+
+			begin = allocator.allocate(size);
+			end = this->last = begin + size;
+
+			memmove_s(std::addressof(*begin), size, std::addressof(*first), size);
 		}
 
 		vector(const vector& other)
@@ -54,37 +58,76 @@ namespace blASTL {
 
 		vector(vector&& other) noexcept
 			: allocator(std::move(other.allocator)), begin(std::move(other.begin)),
-			end(std::move(other.end)), last(std::move(other.last)) {}
+			end(std::move(other.end)), last(end) {}
 
 		vector(vector&& other, const Allocator& alloc)
 			: allocator(alloc), begin(std::move(other.begin)),
 			end(std::move(other.end)), last(std::move(other.last)) {}
 
 		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
-			: allocator(alloc), begin(allocator.allocate(init.size())), end(begin), last(begin + init.size()) {
+			: allocator(alloc), begin(allocator.allocate(init.size())), end(begin + init.size()), last(begin + init.size()) {
 
-			for (const auto& it : init)
-				push_back(it);
+			memmove_s(std::addressof(*begin), init.size(), std::addressof(*init.begin()), init.size);
 		}
 	
 		~vector() {
-			for (size_type i = 0; i < size_; ++i)
-				std::allocator_traits<Allocator>::destroy(allocator, std::addressof(*(begin + i)));
+			clear();
 		}
 
 		// Member Function
-		vector& operator=(const vector& other);
-		vector& operator=(vector&& other) noexcept;
-		vector& operator=(std::initializer_list<T> ilist);
+		vector& operator=(const vector& other) {
+			clear();
+			
+			allocator = other.allocator;
+			begin = allocator.allocate(other.size());
+			end = last = begin + other.size();
+			memmove_s(std::addressof(*begin), other.size(), std::addressof(*other.begin), other.size());
+		}
+
+		vector& operator=(vector&& other) noexcept {
+			clear();
+
+			allocator = std::move(other.allocator);
+			begin = std::move(other.begin);
+			end = last = std::move(other.end);
+		}
+
+		vector& operator=(std::initializer_list<T> ilist) {
+			clear();
+			
+			begin = allocator.allocate(ilist.size());
+			end = last = begin + ilist.size();
+			memmove_s(std::addressof(*begin), ilist.size(), std::addressof(*ilist.begin()), ilist.size());
+		}
 		
-		void assign(size_type count, const T& value);
+		void assign(size_type count, const T& value) {
+			clear();
+
+			begin = allocator.allocate(count);
+			end = this->last = begin + count;
+
+			std::fill(begin, last, value);
+		}
 
 		template <class InputIt>
-		void assign(InputIt first, InputIt last);
-		
-		void assign(std::initializer_list<T> ilist);
+		void assign(InputIt first, InputIt last) {
+			clear();
 
-		allocator_type get_allocator() const;
+			auto size = last - first;
+			
+			begin = allocator.allocate(size);
+			end = this->last = begin + size;
+
+			memmove_s(std::addressof(*begin), size, std::addressof(*first), size);
+		}
+		
+		void assign(std::initializer_list<T> ilist) {
+			assign(ilist.begin(), ilist.end());
+		}
+
+		allocator_type get_allocator() const {
+			return allocator;
+		}
 
 		// Element Access
 		reference at(size_type pos);
@@ -156,6 +199,12 @@ namespace blASTL {
 		void resize(size_type count, const value_type& value);
 		
 		void swap(vector& other) noexcept;
+
+	private:
+		void clear() {
+			for (size_type i = 0; i < size_; ++i)
+				std::allocator_traits<Allocator>::destroy(allocator, std::addressof(*(begin + i)));
+		}
 
 	private:
 		iterator begin;

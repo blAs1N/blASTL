@@ -327,8 +327,17 @@ namespace blASTL {
 
 		void pop_back();
 		
-		void resize(size_type count);
-		void resize(size_type count, const value_type& value);
+		void resize(size_type count) {
+			resize(count, value_type());
+		}
+
+		void resize(size_type count, const value_type& value) {
+			if (size() < count)
+				insert(mEnd, count - size(), value);
+
+			else if (size() > count)
+				erase(mBegin + count, mEnd);
+		}
 		
 		void swap(vector& other) noexcept {
 			std::swap(mBegin, other.mBegin);

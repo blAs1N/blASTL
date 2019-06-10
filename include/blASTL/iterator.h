@@ -6,9 +6,9 @@
 namespace blASTL {
 
 	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	class forward_iterator {
+	class bidirectional_iterator {
 	public:
-		// Member Operator
+		//Member Operator
 		constexpr reference operator*() {
 			return *ptr;
 		}
@@ -22,17 +22,7 @@ namespace blASTL {
 			ptr--;
 			return *this;
 		}
-
-	protected:
-		// Member Object
-		pointer ptr;
-	};
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	class bidirectional_iterator : public forward_iterator<iterator_category, value_type, difference_type, pointer, reference> {
-
-	public:
-		//Member Operator
+		
 		auto operator++(int) -> decltype(*this)& {
 			auto& tmp = *this;
 			ptr++;
@@ -44,6 +34,10 @@ namespace blASTL {
 			ptr--;
 			return tmp;
 		}
+
+	protected:
+		// Member Object
+		pointer ptr;
 	};
 
 	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
@@ -56,7 +50,7 @@ namespace blASTL {
 			return *this;
 		}
 
-		auto operator-=(difference_type n) -> decltype(*this) & {
+		auto operator-=(difference_type n) -> decltype(*this)& {
 			return (*this -= n);
 		}
 	
@@ -219,49 +213,49 @@ namespace blASTL {
 	};
 
 	// Non-Member Operator
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator==(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() == rhs.base();
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator!=(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() != rhs.base();
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator<(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() > rhs.base();
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator<=(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() >= rhs.base();
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator>(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() < rhs.base();
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr bool operator>=(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 
 		return lhs.base() <= rhs.base();
 	}
 
-	template< class Iter >
+	template <class Iter>
 	constexpr reverse_iterator<Iter>
 		operator+(typename reverse_iterator<Iter>::difference_type n,
 			const reverse_iterator<Iter>& it) {
@@ -269,7 +263,7 @@ namespace blASTL {
 		return reverse_iterator<Iter>(it.base() - n);
 	}
 
-	template< class Iter >
+	template <class Iter>
 	constexpr reverse_iterator<Iter>
 		operator+(const reverse_iterator<Iter>& it,
 			typename reverse_iterator<Iter>::difference_type n) {
@@ -277,7 +271,7 @@ namespace blASTL {
 		return reverse_iterator<Iter>(it.base() - n);
 	}
 
-	template< class Iterator1, class Iterator2 >
+	template <class Iterator1, class Iterator2>
 	constexpr decltype(auto) operator-(const reverse_iterator<Iterator1>& lhs,
 		const reverse_iterator<Iterator2>& rhs) {
 

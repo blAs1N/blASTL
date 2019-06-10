@@ -319,13 +319,22 @@ namespace blASTL {
 		iterator erase(const_iterator pos);
 		iterator erase(const_iterator first, const_iterator last);
 	
-		void push_back(const T& value);
-		void push_back(T&& value);
+		void push_back(const T& value) {
+			emplace_back(value);
+		}
+
+		void push_back(T&& value) {
+			emplace_back(std::move(value));
+		}
 
 		template <class... Args>
-		reference emplace_back(Args&&... args);
+		reference emplace_back(Args&& ... args) {
+			emplace(end(), std::forward<Args>(args)...);
+		}
 
-		void pop_back();
+		void pop_back() {
+			erase(mEnd - 1);
+		}
 		
 		void resize(size_type count) {
 			resize(count, value_type());

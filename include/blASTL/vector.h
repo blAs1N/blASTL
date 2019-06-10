@@ -42,15 +42,8 @@ namespace blASTL {
 		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
 			: mAllocator(alloc) {
 			
-			auto size = last - first;
-
-			mBegin = mAllocator.allocate(size);
-			mEnd = this->mLast = mBegin + size;
-
-			memmove_s(std::addressof(*mBegin),
-				size * sizeof(value_type),
-				std::addressof(*first),
-				size * sizeof(value_type));
+			mBegin = mAllocator.allocate(last - first);
+			mEnd = mLast = std::copy(first, last, mBegin);
 		}
 
 		vector(const vector& other)
@@ -60,21 +53,22 @@ namespace blASTL {
 			: vector(other.mBegin, other.mEnd, alloc) {}
 
 		vector(vector&& other) noexcept
-			: mAllocator(std::move(other.mAllocator)), mBegin(std::move(other.mBegin)),
-			mEnd(std::move(other.mEnd)), mLast(mEnd) {}
+			: mAllocator(std::move(other.mAllocator)),
+			mBegin(std::move(other.mBegin)),
+			mEnd(std::move(other.mEnd)),
+			mLast(mEnd) {}
 
 		vector(vector&& other, const Allocator& alloc)
-			: mAllocator(alloc), mBegin(std::move(other.mBegin)),
-			mEnd(std::move(other.mEnd)), mLast(std::move(other.mLast)) {}
+			: mAllocator(alloc),
+			mBegin(std::move(other.mBegin)),
+			mEnd(std::move(other.mEnd)),
+			mLast(mEnd) {}
 
 		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
-			: mAllocator(alloc), mBegin(mAllocator.allocate(init.size())), mEnd(mBegin + init.size()), mLast(mBegin + init.size()) {
-
-			memmove_s(std::addressof(*mBegin),
-				init.size() * sizeof(value_type),
-				std::addressof(*init.begin()),
-				init.size * sizeof(value_type));
-		}
+			: mAllocator(alloc),
+			mBegin(mAllocator.allocate(init.size())),
+			mEnd(std::copy(init.begin(), init.end(), mBegin)),
+			mLast(mEnd) {}
 	
 		~vector() {
 			clear();
@@ -86,12 +80,12 @@ namespace blASTL {
 			
 			mAllocator = other.mAllocator;
 			mBegin = mAllocator.allocate(other.size());
-			mEnd = mLast = mBegin + other.size();
 
-			memmove_s(std::addressof(*mBegin),
-				other.size() * sizeof(value_type),
-				std::addressof(*other.mBegin),
-				other.size() * sizeof(value_type));
+			mEnd = mLast = std::copy(
+				other.mBegin,
+				other.mEnd,
+				mBegin
+			);
 		}
 
 		vector& operator=(vector&& other) noexcept {
@@ -106,19 +100,18 @@ namespace blASTL {
 			clear();
 			
 			mBegin = mAllocator.allocate(ilist.size());
-			mEnd = mLast = mBegin + ilist.size();
-
-			memmove_s(std::addressof(*mBegin),
-				ilist.size(),
-				std::addressof(*ilist.begin()),
-				ilist.size());
+			mEnd = mLast = std::copy(
+				ilist.begin(),
+				ilist.end(),
+				mBegin
+			);
 		}
 		
 		void assign(size_type count, const T& value) {
 			clear();
 
 			mBegin = mAllocator.allocate(count);
-			mEnd = this->mLast = mBegin + count;
+			mEnd = mLast = mBegin + count;
 
 			std::fill(mBegin, mLast, value);
 		}
@@ -127,15 +120,8 @@ namespace blASTL {
 		void assign(InputIt first, InputIt last) {
 			clear();
 
-			auto size = last - first;
-			
-			mBegin = mAllocator.allocate(size);
-			mEnd = this->mLast = mBegin + size;
-
-			memmove_s(std::addressof(*mBegin),
-				size * sizeof(value_type),
-				std::addressof(*first),
-				size * sizeof(value_type));
+			mBegin = mAllocator.allocate(last - first);
+			mEnd = mLast = std::copy(first, last, mBegin);
 		}
 		
 		void assign(std::initializer_list<T> ilist) {
@@ -257,24 +243,18 @@ namespace blASTL {
 		}
 
 		void reserve(size_type new_cap) {
-			auto size = size();
-
-			if (size + new_cap >= max_size())
+			if (new_cap >= max_size())
 				throw std::length_error("vector::reserve - new_cap is greater than max_size");
 
 			if (new_cap <= capacity()) return;
 
 			auto newBegin = mAllocator.allocate(new_cap);
-
-			memmove_s(std::addressof(*newBegin),
-				new_cap * sizeof(value_type),
-				std::addressof(*mBegin),
-				size * sizeof(value_type));
+			auto newEnd = std::copy(mBegin, mEnd, newBegin);
 
 			mAllocator.deallocate(mBegin, capacity());
 
 			mBegin = newBegin;
-			mEnd = mBegin + size;
+			mEnd = newEnd;
 			mLast = mBegin + new_cap;
 		}
 
@@ -314,7 +294,16 @@ namespace blASTL {
 		iterator insert(const_iterator pos, std::initializer_list<T> ilist);
 	
 		template <class... Args>
-		iterator emplace(const_iterator pos, Args&& args);
+		iterator emplace(const_iterator pos, Args&& args) {
+			auto new_elem = rightShift(pos - mBegin, 1);
+
+			std::allocator_traits<Allocator>::construct(
+				allocator,
+				std::addressof(*new_elem),
+				std::forward<Args>(args)...);
+
+			return new_elem;
+		}
 
 		iterator erase(const_iterator pos);
 		iterator erase(const_iterator first, const_iterator last);
@@ -353,6 +342,36 @@ namespace blASTL {
 			std::swap(mEnd, other.mEnd);
 			std::swap(mLast, other.mLast);
 			std::swap(mAllocator, other.mAllocator);
+		}
+
+	private:
+		iterator rightShift(size_type pos, size_type count) {
+			if (count == 0 || empty()) return mBegin;
+
+			if (capacity() == 0) {
+				mBegin = allocator.allocate(count);
+				mEnd = mLast = mBegin + count;
+				return mBegin;
+			}
+
+			if (size() + count > capacity())
+				reserve(capacity() * 2);
+			
+			return shift(pos, count);
+		}
+
+		iterator leftShift(size_type pos, size_type count) {
+			if (count == 0 || empty()) return mBegin;
+
+			return shift(pos, -count);
+		}
+
+		iterator shift(size_type pos, size_type count) {
+			auto tmpBegin = vector<T, Allocator>(mEnd - (mBegin + pos));
+			auto tmpEnd = std::copy(mBegin + pos, mEnd, tmp);
+
+			mEnd = std::copy(tmpBegin, tmpEnd, mBegin + pos + count);
+			return mBegin + pos;
 		}
 
 	private:

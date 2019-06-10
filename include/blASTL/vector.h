@@ -164,11 +164,11 @@ namespace blASTL {
 		}
 
 		reference back() {
-			return *mEnd;
+			return *(mEnd - 1);
 		}
 
 		const_reference back() const {
-			return *mEnd;
+			return *(mEnd - 1);
 		}
 
 		T* data() noexcept {
@@ -284,18 +284,44 @@ namespace blASTL {
 				std::allocator_traits<allocator_type>::destroy(mAllocator, std::addressof(*(mBegin + i)));
 		}
 
-		iterator insert(const_iterator pos, const T& value);
-		iterator insert(const_iterator pos, T&& value);
-		iterator insert(const_iterator pos, size_type count, const T& value);
+		iterator insert(const_iterator pos, const T& value) {
+			return emplace(pos, value);
+		}
+
+		iterator insert(const_iterator pos, T&& value) {
+			return emplace(pos, std::move(value));
+		}
+
+		iterator insert(const_iterator pos, size_type count, const T& value) {
+			auto new_elem = rightShift(pos - mBegin, count);
+			std::fill(new_elem, new_elem + count, value);
+			return new_elem;
+		}
 
 		template <class InputIt>
-		iterator insert(const_iterator pos, InputIt first, InputIt last);
+		iterator insert(const_iterator pos, InputIt first, InputIt last) {
+			auto ret = pos;
 
-		iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+			while (first != last)
+				pos = emplace(pos, *first++);
+
+			return ret;
+		}
+
+		iterator insert(const_iterator pos, std::initializer_list<T> ilist) {
+			pos = rightShift(pos, ilist.size());
+			auto it = pos;
+
+			for (const T& x : ilist) {
+				std::allocator_traits<Allocator>::construct(allocator, std::addressof(*it++), x);
+			}
+
+			return pos;
+		}
 	
 		template <class... Args>
 		iterator emplace(const_iterator pos, Args&& args) {
-			auto new_elem = rightShift(pos - mBegin, 1);
+			auto new_elem = rightShift(pos, 1);
 
 			std::allocator_traits<Allocator>::construct(
 				allocator,
@@ -318,7 +344,7 @@ namespace blASTL {
 
 		template <class... Args>
 		reference emplace_back(Args&& ... args) {
-			emplace(end(), std::forward<Args>(args)...);
+			emplace(mEnd, std::forward<Args>(args)...);
 		}
 
 		void pop_back() {
@@ -345,7 +371,7 @@ namespace blASTL {
 		}
 
 	private:
-		iterator rightShift(size_type pos, size_type count) {
+		iterator rightShift(const_iterator pos, size_type count) {
 			if (count == 0 || empty()) return mBegin;
 
 			if (capacity() == 0) {
@@ -360,18 +386,17 @@ namespace blASTL {
 			return shift(pos, count);
 		}
 
-		iterator leftShift(size_type pos, size_type count) {
+		iterator leftShift(const_iterator pos, size_type count) {
 			if (count == 0 || empty()) return mBegin;
 
 			return shift(pos, -count);
 		}
 
-		iterator shift(size_type pos, size_type count) {
-			auto tmpBegin = vector<T, Allocator>(mEnd - (mBegin + pos));
-			auto tmpEnd = std::copy(mBegin + pos, mEnd, tmp);
+		iterator shift(const_iterator pos, size_type count) {
+			auto tmpVec = vector<T, Allocator>(pos, mEnd);
 
-			mEnd = std::copy(tmpBegin, tmpEnd, mBegin + pos + count);
-			return mBegin + pos;
+			mEnd = std::copy(tmpVec.mBegin, tmpVec.mEnd, pos + count);
+			return pos;
 		}
 
 	private:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <algorithm>
 #include "iterator.h"
 
 namespace blASTL {
@@ -238,7 +239,7 @@ namespace blASTL {
 		}
 
 		size_type max_size() const noexcept {
-			return __min(std::numeric_limits<difference_type>::max(),
+			return std::min(std::numeric_limits<difference_type>::max(),
 				std::allocator_traits<allocator_type>::max_size(mAllocator));
 		}
 
@@ -417,8 +418,8 @@ namespace blASTL {
 	};
 
 	// Non-member functions
-	template <class T, class Alloc>
-	bool operator==(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		if (lhs.size() != rhs.size())
 			return false;
 
@@ -428,43 +429,47 @@ namespace blASTL {
 		return true;
 	}
 
-	template <class T, class Alloc>
-	bool operator!=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator!=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		return !(lhs == rhs);
 	}
 
-	template <class T, class Alloc>
-	bool operator<(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator<(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		return std::lexicographical_compare(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
 	}
 
-	template <class T, class Alloc>
-	bool operator<=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator<=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		return lhs < rhs || lhs == rhs;
 	}
 
-	template <class T, class Alloc>
-	bool operator>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		return !(lhs <= rhs);
 	}
 
-	template <class T, class Alloc>
-	bool operator>=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	bool operator>=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
 		return !(lhs < rhs);
 	}
 
-	template <class T, class Alloc>
-	void swap(vector<T, Alloc>& lhs, vector<T, Alloc>& rhs) {
+	template <class T, class Allocator>
+	void swap(vector<T, Allocator>& lhs, vector<T, Allocator>& rhs) {
 		std::swap(lhs.mBegin, rhs.mBegin);
 		std::swap(lhs.mEnd, rhs.mEnd);
 		std::swap(lhs.mLast, rhs.mLast);
 		std::swap(lhs.mAllocator, rhs.mAllocator);
 	}
 
-	template <class T, class Alloc, class U>
-	void erase(vector<T, Alloc>& c, const U& value);
+	template <class T, class Allocator, class U>
+	void erase(vector<T, Allocator>& c, const U& value) {
+		c.erase(std::remove(c.begin(), c.end(), value), c.end());
+	}
 
-	template <class T, class Alloc, class Pred>
-	void erase_if(vector<T, Alloc>& c, Pred pred);
+	template <class T, class Allocator, class Pred>
+	void erase_if(vector<T, Allocator>& c, Pred pred) {
+		c.erase(std::remove_if(c.begin(), c.end(), pred), c.end());
+	}
 
 }

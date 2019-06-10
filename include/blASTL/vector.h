@@ -47,7 +47,10 @@ namespace blASTL {
 			mBegin = mAllocator.allocate(size);
 			mEnd = this->mLast = mBegin + size;
 
-			memmove_s(std::addressof(*mBegin), size * sizeof(value_type), std::addressof(*first), size * sizeof(value_type));
+			memmove_s(std::addressof(*mBegin),
+				size * sizeof(value_type),
+				std::addressof(*first),
+				size * sizeof(value_type));
 		}
 
 		vector(const vector& other)
@@ -249,8 +252,8 @@ namespace blASTL {
 		}
 
 		size_type max_size() const noexcept {
-			return __min(std::allocator_traits<allocator_type>::max_size(mAllocator),
-				std::numeric_limits<difference_type>::max());
+			return __min(std::numeric_limits<difference_type>::max(),
+				std::allocator_traits<allocator_type>::max_size(mAllocator));
 		}
 
 		void reserve(size_type new_cap) {
@@ -280,10 +283,19 @@ namespace blASTL {
 		}
 
 		void shrink_to_fit() {
-			auto tmp = vector<T, Allocator>(mBegin, mEnd, mAllocator);
-			swap(tmp);
+			if (size() == capacity()) return;
 
-			mAllocator.deallocate(tmp.mBegin, capacity());
+			if (empty()) {
+				mAllocator.deallocate(mBegin, capacity());
+				mEnd = mLast = mBegin;
+			}
+
+			else {
+				auto tmp = vector<T, Allocator>(mBegin, mEnd, mAllocator);
+				swap(tmp);
+
+				mAllocator.deallocate(tmp.mBegin, capacity());
+			}
 		}
 		
 		// Modifiers

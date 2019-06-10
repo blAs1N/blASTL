@@ -331,8 +331,18 @@ namespace blASTL {
 			return new_elem;
 		}
 
-		iterator erase(const_iterator pos);
-		iterator erase(const_iterator first, const_iterator last);
+		iterator erase(const_iterator pos) {
+			std::allocator_traits<Allocator>::destroy(allocator, std::addressof(*pos));
+
+			return leftShift(pos, 1);
+		}
+
+		iterator erase(const_iterator first, const_iterator last) {
+			for (auto ptr = std::addressof(*first); ptr != last; ptr++)
+				std::allocator_traits<Allocator>::destroy(allocator, ptr);
+			
+			return leftShift(last, last - first);
+		}
 	
 		void push_back(const T& value) {
 			emplace_back(value);

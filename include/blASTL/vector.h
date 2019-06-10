@@ -27,10 +27,10 @@ namespace blASTL {
 		vector() noexcept(noexcept(Allocator())) = default;
 
 		explicit vector(const Allocator& alloc) noexcept
-			: mBegin(), mEnd(), mLast, allocator(alloc) {}
+			: mBegin(), mEnd(), mLast, mAllocator(alloc) {}
 
 		vector(size_type count, const T& value, const Allocator& alloc = Allocator())
-			: allocator(alloc), mBegin(allocator.allocate(count)), mEnd(mBegin + count), mLast(mBegin + count) {
+			: mAllocator(alloc), mBegin(mAllocator.allocate(count)), mEnd(mBegin + count), mLast(mBegin + count) {
 
 			std::fill(mBegin, mLast, value);
 		}
@@ -40,32 +40,32 @@ namespace blASTL {
 
 		template <class InputIt>
 		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
-			: allocator(alloc) {
+			: mAllocator(alloc) {
 			
 			auto size = last - first;
 
-			mBegin = allocator.allocate(size);
+			mBegin = mAllocator.allocate(size);
 			mEnd = this->mLast = mBegin + size;
 
 			memmove_s(std::addressof(*mBegin), size * sizeof(value_type), std::addressof(*first), size * sizeof(value_type));
 		}
 
 		vector(const vector& other)
-			: vector(other.mBegin, other.mEnd, other.allocator) {}
+			: vector(other.mBegin, other.mEnd, other.mAllocator) {}
 
 		vector(const vector& other, const Allocator& alloc)
 			: vector(other.mBegin, other.mEnd, alloc) {}
 
 		vector(vector&& other) noexcept
-			: allocator(std::move(other.allocator)), mBegin(std::move(other.mBegin)),
+			: mAllocator(std::move(other.mAllocator)), mBegin(std::move(other.mBegin)),
 			mEnd(std::move(other.mEnd)), mLast(mEnd) {}
 
 		vector(vector&& other, const Allocator& alloc)
-			: allocator(alloc), mBegin(std::move(other.mBegin)),
+			: mAllocator(alloc), mBegin(std::move(other.mBegin)),
 			mEnd(std::move(other.mEnd)), mLast(std::move(other.mLast)) {}
 
 		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
-			: allocator(alloc), mBegin(allocator.allocate(init.size())), mEnd(mBegin + init.size()), mLast(mBegin + init.size()) {
+			: mAllocator(alloc), mBegin(mAllocator.allocate(init.size())), mEnd(mBegin + init.size()), mLast(mBegin + init.size()) {
 
 			memmove_s(std::addressof(*mBegin),
 				init.size() * sizeof(value_type),
@@ -81,8 +81,8 @@ namespace blASTL {
 		vector& operator=(const vector& other) {
 			clear();
 			
-			allocator = other.allocator;
-			mBegin = allocator.allocate(other.size());
+			mAllocator = other.mAllocator;
+			mBegin = mAllocator.allocate(other.size());
 			mEnd = mLast = mBegin + other.size();
 
 			memmove_s(std::addressof(*mBegin),
@@ -94,7 +94,7 @@ namespace blASTL {
 		vector& operator=(vector&& other) noexcept {
 			clear();
 
-			allocator = std::move(other.allocator);
+			mAllocator = std::move(other.mAllocator);
 			mBegin = std::move(other.mBegin);
 			mEnd = mLast = std::move(other.mEnd);
 		}
@@ -102,7 +102,7 @@ namespace blASTL {
 		vector& operator=(std::initializer_list<T> ilist) {
 			clear();
 			
-			mBegin = allocator.allocate(ilist.size());
+			mBegin = mAllocator.allocate(ilist.size());
 			mEnd = mLast = mBegin + ilist.size();
 
 			memmove_s(std::addressof(*mBegin),
@@ -114,7 +114,7 @@ namespace blASTL {
 		void assign(size_type count, const T& value) {
 			clear();
 
-			mBegin = allocator.allocate(count);
+			mBegin = mAllocator.allocate(count);
 			mEnd = this->mLast = mBegin + count;
 
 			std::fill(mBegin, mLast, value);
@@ -126,7 +126,7 @@ namespace blASTL {
 
 			auto size = last - first;
 			
-			mBegin = allocator.allocate(size);
+			mBegin = mAllocator.allocate(size);
 			mEnd = this->mLast = mBegin + size;
 
 			memmove_s(std::addressof(*mBegin),
@@ -140,7 +140,7 @@ namespace blASTL {
 		}
 
 		allocator_type get_allocator() const {
-			return allocator;
+			return mAllocator;
 		}
 
 		// Element Access
@@ -249,7 +249,7 @@ namespace blASTL {
 		}
 
 		size_type max_size() const noexcept {
-			return __min(std::allocator_traits<allocator_type>::max_size(allocator),
+			return __min(std::allocator_traits<allocator_type>::max_size(mAllocator),
 				std::numeric_limits<difference_type>::max());
 		}
 
@@ -261,14 +261,14 @@ namespace blASTL {
 
 			if (new_cap <= capacity()) return;
 
-			auto newBegin = allocator.allocate(new_cap);
+			auto newBegin = mAllocator.allocate(new_cap);
 
 			memmove_s(std::addressof(*newBegin),
 				new_cap * sizeof(value_type),
 				std::addressof(*mBegin),
 				size * sizeof(value_type));
 
-			allocator.deallocate(mBegin, capacity());
+			mAllocator.deallocate(mBegin, capacity());
 
 			mBegin = newBegin;
 			mEnd = mBegin + size;
@@ -279,12 +279,17 @@ namespace blASTL {
 			return mLast - mBegin;
 		}
 
-		void shrink_to_fit();
+		void shrink_to_fit() {
+			auto tmp = vector<T, Allocator>(mBegin, mEnd, mAllocator);
+			swap(tmp);
+
+			mAllocator.deallocate(tmp.mBegin, capacity());
+		}
 		
 		// Modifiers
 		void clear() noexcept {
 			for (size_type i = 0; i < size_; ++i)
-				std::allocator_traits<allocator_type>::destroy(allocator, std::addressof(*(mBegin + i)));
+				std::allocator_traits<allocator_type>::destroy(mAllocator, std::addressof(*(mBegin + i)));
 		}
 
 		iterator insert(const_iterator pos, const T& value);
@@ -313,13 +318,18 @@ namespace blASTL {
 		void resize(size_type count);
 		void resize(size_type count, const value_type& value);
 		
-		void swap(vector& other) noexcept;
+		void swap(vector& other) noexcept {
+			std::swap(mBegin, other.mBegin);
+			std::swap(mEnd, other.mEnd);
+			std::swap(mLast, other.mLast);
+			std::swap(mAllocator, other.mAllocator);
+		}
 
 	private:
 		iterator mBegin;
 		iterator mEnd;
 		iterator mLast;
-		Allocator allocator
+		Allocator mAllocator;
 	};
 
 	// Non-member functions
@@ -342,7 +352,12 @@ namespace blASTL {
 	bool operator>=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs);
 
 	template <class T, class Alloc>
-	void swap(vector<T, Alloc>& lhs, vector<T, Alloc>& rhs);
+	void swap(vector<T, Alloc>& lhs, vector<T, Alloc>& rhs) {
+		std::swap(lhs.mBegin, rhs.mBegin);
+		std::swap(lhs.mEnd, rhs.mEnd);
+		std::swap(lhs.mLast, rhs.mLast);
+		std::swap(lhs.mAllocator, rhs.mAllocator);
+	}
 
 	template <class T, class Alloc, class U>
 	void erase(vector<T, Alloc>& c, const U& value);

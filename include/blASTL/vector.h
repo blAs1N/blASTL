@@ -7,7 +7,7 @@
 namespace blASTL {
 
 	template <class T, class Allocator = std::allocator<T>>
-	class vector {
+	class vector final {
 	public:
 		// Member types
 		using value_type = T;

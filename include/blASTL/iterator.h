@@ -3,121 +3,35 @@
 #include <memory>
 #include <iterator>
 
+// This template specialization is built in std namespace for compatibility with real standards
+namespace std {
+
+	template <class T>
+	struct iterator_traits<const T*>
+	{
+		using iterator_category = std::random_access_iterator_tag;
+		using value_type = T;
+		using difference_type = ptrdiff_t;
+		using pointer = const T*;
+		using reference = const T&;
+	};
+
+}
+
 namespace blASTL {
 
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	class bidirectional_iterator {
-	public:
-		//Member Operator
-		constexpr reference operator*() {
-			return *ptr;
-		}
-
-		auto operator++() -> decltype(*this)& {
-			ptr++;
-			return *this;
-		}
-
-		auto operator--() -> decltype(*this)& {
-			ptr--;
-			return *this;
-		}
-		
-		auto operator++(int) -> decltype(*this)& {
-			auto& tmp = *this;
-			ptr++;
-			return tmp;
-		}
-
-		auto operator--(int) -> decltype(*this)& {
-			auto& tmp = *this;
-			ptr--;
-			return tmp;
-		}
-
-	protected:
-		// Member Object
-		pointer ptr;
+	template <class Category, class T, class Distance = std::ptrdiff_t,
+		class Pointer = T*, class Reference = T&>
+	struct iterator {
+		using iterator_category = Category;
+		using value_type = T;
+		using difference_type = Distance;
+		using pointer = Pointer;
+		using reference = Reference;
 	};
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	class random_access_iterator : public bidirectional_iterator<iterator_category, value_type, difference_type, pointer, reference> {
-	public:
-		//Member Operator
-		auto operator+=(difference_type n) -> decltype(*this)& {
-			if (n >= 0) while (n--) ++ptr;
-			else while (n++) --ptr;
-			return *this;
-		}
-
-		auto operator-=(difference_type n) -> decltype(*this)& {
-			return (*this -= n);
-		}
-	
-		constexpr reference operator[](size_t n) {
-			return *(ptr + n)
-		}
-
-	};
-
-	// Non-Member Operator
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr auto operator+(random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> a, difference_type n) -> decltype(a) {
-		auto tmp = a;
-		tmp += n;
-		return tmp;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr auto operator+(difference_type n, random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> a) -> decltype(a) {
-		return a + n;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr auto operator-(random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> a, difference_type n) -> decltype(a) {
-		auto tmp = a;
-		tmp -= n;
-		return tmp;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr auto operator-(difference_type n, random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> a) -> decltype(a) {
-		return a - n;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr difference_type operator-(random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> lhs,
-		random_access_iterator<iterator_category, value_type, difference_type, pointer, reference> rhs) {
-
-		return std::distance(lhs, rhs);
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr bool operator<(const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& lhs,
-		const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& rhs) {
-		return lhs.ptr < rhs.ptr;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr bool operator<=(const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& lhs,
-		const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& rhs) {
-		return lhs.ptr <= rhs.ptr;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr bool operator>(const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& lhs,
-		const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& rhs) {
-		return lhs.ptr > rhs.ptr;
-	}
-
-	template <class iterator_category, class value_type, class difference_type, class pointer, class reference>
-	constexpr bool operator>=(const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& lhs,
-		const random_access_iterator<iterator_category, value_type, difference_type, pointer, reference>& rhs) {
-		return lhs.ptr >= rhs.ptr;
-	}
 
 	template <class Iter>
-	class reverse_iterator {
+	class reverse_iterator final {
 	public:
 		//Member Types
 		using value_type = typename std::iterator_traits<Iter>::value_type;
@@ -125,13 +39,12 @@ namespace blASTL {
 		using pointer = typename std::iterator_traits<Iter>::pointer;
 		using reference = typename std::iterator_traits<Iter>::reference;
 		using iterator_category = typename std::iterator_traits<Iter>::iterator_category;
-		using iterator_type = Iter;
 
 		// Constructor and Destructor
 		constexpr reverse_iterator()
 			: current() {}
 
-		constexpr explicit reverse_iterator(iterator_type x)
+		constexpr explicit reverse_iterator(Iter x)
 			: current(x) {}
 
 		template <class U>
@@ -146,7 +59,7 @@ namespace blASTL {
 		}
 
 		constexpr reference operator*() const {
-			iterator_type tmp = current;
+			auto tmp = current;
 			return *(--tmp);
 		}
 
@@ -154,8 +67,8 @@ namespace blASTL {
 			return std::addressof(operator*());
 		}
 
-		constexpr operator[](difference_type n) const {
-			base()[-n - 1];
+		constexpr reference operator[](difference_type n) const {
+			current[-n - 1];
 		}
 
 		constexpr reverse_iterator& operator++() {
@@ -203,13 +116,13 @@ namespace blASTL {
 		}
 
 		// Member Function
-		constexpr iterator_type base() const {
+		constexpr Iter base() const {
 			return current;
 		}
 
-	protected:
+	private:
 		// Member Object
-		iterator_type current;
+		Iter current;
 	};
 
 	// Non-Member Operator
@@ -264,8 +177,7 @@ namespace blASTL {
 	}
 
 	template <class Iter>
-	constexpr reverse_iterator<Iter>
-		operator+(const reverse_iterator<Iter>& it,
+	constexpr decltype(auto) operator+(const reverse_iterator<Iter>& it,
 			typename reverse_iterator<Iter>::difference_type n) {
 
 		return reverse_iterator<Iter>(it.base() - n);
@@ -280,7 +192,7 @@ namespace blASTL {
 
 	// Non-Member Function
 	template <class Iter>
-	constexpr std::reverse_iterator<Iter> make_reverse_iterator(Iter i) {
+	constexpr decltype(auto) make_reverse_iterator(Iter i) {
 		return std::reverse_iterator<Iter>(i);
 	}
 

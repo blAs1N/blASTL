@@ -15,11 +15,11 @@ namespace blASTL {
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
 		using reference = value_type&;
-		using const_reference = const value_type&;
+		using const_reference = value_type const&;
 		using pointer = typename std::allocator_traits<allocator_type>::pointer;
 		using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
 		using iterator = T*;
-		using const_iterator = const T*;
+		using const_iterator = T const*;
 		using reverse_iterator = blASTL::reverse_iterator<iterator>;
 		using const_reverse_iterator = blASTL::reverse_iterator<const_iterator>;
 	
@@ -28,20 +28,20 @@ namespace blASTL {
 		vector() noexcept(noexcept(Allocator()))
 			: mBegin(nullptr), mEnd(nullptr), mLast(nullptr), mAllocator(Allocator()) {}
 
-		explicit vector(const Allocator& alloc) noexcept
+		explicit vector(Allocator const& alloc) noexcept
 			: mBegin(nullptr), mEnd(nullptr), mLast(nullptr), mAllocator(alloc) {}
 
-		vector(size_type count, const T& value, const Allocator& alloc = Allocator())
+		vector(size_type count, T const& value, Allocator const& alloc = Allocator())
 			: mAllocator(alloc), mBegin(mAllocator.allocate(count)), mEnd(mBegin), mLast(mBegin + count) {
 
 			fill(mBegin, mLast, value);
 		}
 
-		explicit vector(size_type count, const Allocator& alloc = Allocator())
+		explicit vector(size_type count, Allocator const& alloc = Allocator())
 			: vector(count, T(), alloc) {}
 
 		template <class InputIt>
-		vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
+		vector(InputIt first, InputIt last, Allocator const& alloc = Allocator())
 			: mAllocator(alloc) {
 			
 			mBegin = mEnd = mAllocator.allocate(last - first);
@@ -51,10 +51,10 @@ namespace blASTL {
 				std::allocator_traits<Allocator>::construct(mAllocator, mEnd++, *first);
 		}
 
-		vector(const vector& other)
+		vector(vector const& other)
 			: vector(other.mBegin, other.mEnd, other.mAllocator) {}
 
-		vector(const vector& other, const Allocator& alloc)
+		vector(vector const& other, Allocator const& alloc)
 			: vector(other.mBegin, other.mEnd, alloc) {}
 
 		vector(vector&& other) noexcept
@@ -63,13 +63,13 @@ namespace blASTL {
 			mEnd(std::move(other.mEnd)),
 			mLast(mEnd) {}
 
-		vector(vector&& other, const Allocator& alloc)
+		vector(vector&& other, Allocator const& alloc)
 			: mAllocator(alloc),
 			mBegin(std::move(other.mBegin)),
 			mEnd(std::move(other.mEnd)),
 			mLast(mEnd) {}
 
-		vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
+		vector(std::initializer_list<T> init, Allocator const& alloc = Allocator())
 			: vector(init.begin(), init.end(), alloc) {}
 	
 		~vector() {
@@ -77,7 +77,7 @@ namespace blASTL {
 		}
 
 		// Member Function
-		vector& operator=(const vector& other) {
+		vector& operator=(vector const& other) {
 			assign(other.mBegin, other.mEnd);
 			return *this;
 		}
@@ -97,7 +97,7 @@ namespace blASTL {
 			return *this;
 		}
 		
-		void assign(size_type count, const T& value) {
+		void assign(size_type count, T const& value) {
 			reset();
 
 			mBegin = mEnd = mAllocator.allocate(count);
@@ -107,7 +107,7 @@ namespace blASTL {
 		}
 
 		template <class InputIt,
-			typename = std::enable_if_t<std::is_same_v<iterator, InputIt> || std::is_same_v<const_iterator, InputIt>>>
+			typename = std::enable_if_t<std::is_same_v<iterator, std::remove_const_t<InputIt>>>>
 		void assign(InputIt first, InputIt last) {
 			reset();
 
@@ -169,7 +169,7 @@ namespace blASTL {
 			return mBegin;
 		}
 
-		const T* data() const noexcept {
+		T const* data() const noexcept {
 			return mBegin;
 		}
 
@@ -275,7 +275,7 @@ namespace blASTL {
 			std::allocator_traits<allocator_type>::destroy(mAllocator, mBegin);
 		}
 
-		iterator insert(const_iterator pos, const T& value) {
+		iterator insert(const_iterator pos, T const& value) {
 			return emplace(pos, value);
 		}
 
@@ -283,7 +283,7 @@ namespace blASTL {
 			return emplace(pos, std::move(value));
 		}
 
-		iterator insert(const_iterator pos, size_type count, const T& value) {
+		iterator insert(const_iterator pos, size_type count, T const& value) {
 			auto new_elem = shift(pos - mBegin, count);
 			fill(new_elem, new_elem + count, value);
 			return new_elem;
@@ -328,7 +328,7 @@ namespace blASTL {
 			return shift(last - mBegin, first - last);
 		}
 	
-		void push_back(const T& value) {
+		void push_back(T const& value) {
 			emplace_back(value);
 		}
 
@@ -349,7 +349,7 @@ namespace blASTL {
 			resize(count, value_type());
 		}
 
-		void resize(size_type count, const value_type& value) {
+		void resize(size_type count, value_type const& value) {
 			if (size() < count)
 				insert(mEnd, count - size(), value);
 
@@ -421,7 +421,7 @@ namespace blASTL {
 			mEnd = mLast = mBegin;
 		}
 
-		void fill(iterator first, iterator last, const T& value) {
+		void fill(iterator first, iterator last, T const& value) {
 			for (; first != last; first++) {
 				if (first < mEnd)
 					std::allocator_traits<Allocator>::destroy(mAllocator, first);
@@ -439,7 +439,7 @@ namespace blASTL {
 
 	// Non-member functions
 	template <class T, class Allocator>
-	bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator==(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		if (lhs.size() != rhs.size())
 			return false;
 
@@ -450,27 +450,27 @@ namespace blASTL {
 	}
 
 	template <class T, class Allocator>
-	bool operator!=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator!=(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		return !(lhs == rhs);
 	}
 
 	template <class T, class Allocator>
-	bool operator<(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator<(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		return std::lexicographical_compare(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
 	}
 
 	template <class T, class Allocator>
-	bool operator<=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator<=(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		return lhs < rhs || lhs == rhs;
 	}
 
 	template <class T, class Allocator>
-	bool operator>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator>(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		return !(lhs <= rhs);
 	}
 
 	template <class T, class Allocator>
-	bool operator>=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+	bool operator>=(vector<T, Allocator> const& lhs, vector<T, Allocator> const& rhs) {
 		return !(lhs < rhs);
 	}
 

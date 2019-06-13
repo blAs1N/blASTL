@@ -35,12 +35,14 @@ namespace blASTL {
 			: mAllocator(alloc), mBegin(mAllocator.allocate(count)), mEnd(mBegin), mLast(mBegin + count) {
 
 			fill(mBegin, mLast, value);
+			mEnd = mLast;
 		}
 
 		explicit vector(size_type count, Allocator const& alloc = Allocator())
 			: vector(count, T(), alloc) {}
 
-		template <class InputIt>
+		template <class InputIt, typename = std::enable_if_t<
+			std::is_same_v<std::iterator_traits<InputIt>::iterator_category, std::random_access_iterator_tag>>>
 		vector(InputIt first, InputIt last, Allocator const& alloc = Allocator())
 			: mAllocator(alloc) {
 			
@@ -108,13 +110,14 @@ namespace blASTL {
 			reset();
 
 			mBegin = mAllocator.allocate(count);
-			mEnd = mLast = mBegin + count;
+			mLast = mBegin + count;
 
 			fill(mBegin, mLast, value);
+			mEnd = mLast;
 		}
 
 		template <class InputIt, typename = std::enable_if_t<
-			std::is_same_v<std::iterator_traits<InputIt>::iterator_category, std::random_access_iterator_tag>>>
+			std::is_base_of_v<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>>>
 		void assign(InputIt first, InputIt last) {
 			reset();
 
@@ -368,10 +371,10 @@ namespace blASTL {
 		}
 		
 		void swap(vector& other) noexcept {
+			std::swap(mAllocator, other.mAllocator);
 			std::swap(mBegin, other.mBegin);
 			std::swap(mEnd, other.mEnd);
 			std::swap(mLast, other.mLast);
-			std::swap(mAllocator, other.mAllocator);
 		}
 
 	private:
@@ -383,8 +386,11 @@ namespace blASTL {
 
 			if (count == 0) return mBegin + pos;
 
-			if (size() + count > capacity())
-				reserve(capacity() * 2);
+			if (size() + count > capacity()) {
+				size_type new_cap;
+				for (new_cap = capacity(); new_cap < size() + count; new_cap *= 2);
+				reserve(new_cap);
+			}
 
 			if (pos < size()) {
 				vector<T, Allocator> tmpVec(mBegin + pos, mEnd);
@@ -443,10 +449,10 @@ namespace blASTL {
 		}
 
 	private:
+		Allocator mAllocator;
 		iterator mBegin;
 		iterator mEnd;
 		iterator mLast;
-		Allocator mAllocator;
 	};
 
 	// Non-member functions

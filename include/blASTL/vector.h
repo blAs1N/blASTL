@@ -408,18 +408,21 @@ namespace blASTL {
 			if (srcFirst == destFirst || srcSize == 0 || destSize == 0)
 				return;
 
-			constexpr static auto inc = [](iterator& it) { ++it; };
-			constexpr static auto dec = [](iterator& it) { --it; };
-
-			bool isInc = srcFirst > destFirst;
-
 			void(*op)(iterator&);
+			iterator src, dest;
 
-			if (isInc) op = inc;
-			else op = inc;
+			if (srcFirst > destFirst) {
+				op = [](iterator& it) { ++it; };
+				src = srcFirst;
+				dest = destFirst;
+			}
 
-			auto src = isInc ? srcFirst : srcLast - 1;
-			auto dest = isInc ? destFirst : destLast - 1;
+			else {
+				op = [](iterator& it) { --it; };
+				src = srcLast - 1;
+				dest = destLast - 1;
+			}
+
 			auto count = std::min(srcSize, destSize);
 
 			while (count--) {

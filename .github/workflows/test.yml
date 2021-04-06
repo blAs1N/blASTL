@@ -1,0 +1,26 @@
+name: blASTL Test
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**/README.md'
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create Build Environment
+      run: cmake -E make_directory Binaries/Tests
+    - name: Build
+      working-directory: ./Binaries/Tests
+      run: cmake ../.. && cmake --build . --config $Build_TYPE
+    - name: Run Test
+      working-directory: ./Binaries/Tests
+      run: if [ -f ./Tests ]; then ./Tests; fi

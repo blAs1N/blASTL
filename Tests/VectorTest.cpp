@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "../include/blASTL/vector.h"
+#include <gtest/gtest.h>
+#include "blASTL/Vector.h"
 
 using namespace blASTL;
 
